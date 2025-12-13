@@ -10,10 +10,19 @@
 
 ## 前置要求
 
-- OpenHarmony SDK 12（含 RISC-V 工具链）
+- OpenHarmony SDK 12（含目标架构工具链）
 - CMake 3.14+
 - patchelf
 - hdc 命令行工具
+
+## 支持的架构
+
+| 架构 | 目标设备 | 编译脚本 | 库目录 |
+|------|----------|----------|--------|
+| RISC-V64 | Spacemit X60 | `llama_cpp/build_riscv64.sh` | `product/phone/libs/riscv64/` |
+| ARM64 | P7885 等 | `llama_cpp/build_arm64.sh` | `product/phone/libs/arm64-v8a/` |
+
+当前仓库预编译的是 RISC-V64 版本。ARM64 需要重新编译（见下方说明）。
 
 ## 快速开始（使用预编译库）
 
@@ -182,11 +191,15 @@ chmod +x llama-run
 
 ## 性能基线
 
-| 设备 | 模型 | 量化 | 速度 |
-|------|------|------|------|
-| Spacemit X60 (RISC-V, 8核, 16GB) | Qwen2.5-0.5B | Q4_K_M | ~1-2 token/s |
+| 设备 | 架构 | 模型 | 量化 | 速度 |
+|------|------|------|------|------|
+| Spacemit X60 (8核, 16GB) | RISC-V | Qwen2.5-0.5B | Q4_K_M | ~1-2 token/s |
+| 紫光展锐 P7885 (4xA76+4xA55) | ARM64 | Qwen2.5-0.5B | Q4_K_M | ~5-10 token/s (预估) |
 
-注：Spacemit X60 没有 RVV 向量扩展，这是硬件极限。
+**说明：**
+- Spacemit X60 没有 RVV（RISC-V Vector）向量扩展，只能标量运算
+- P7885 有 NEON 向量指令，llama.cpp 原生支持，预估快 5 倍左右
+- P7885 有 8 TOPS NPU，如能接入可进一步加速（需展锐 SDK）
 
 ## 目录结构
 ```
@@ -207,9 +220,78 @@ settings/
 └── README.md                     # 本文件
 ```
 
+## 移植到 ARM64 (P7885 / OpenHarmony 6.0)
+
+如果目标设备是 ARM64 架构（如紫光展锐 P7885），需要重新编译：
+
+### 1. 创建 ARM64 编译脚本
+
+```bash
+# 复制 RISC-V 脚本并修改
+cp llama_cpp/build_riscv64.sh llama_cpp/build_arm64.sh
+cp llama_cpp/ohos_riscv64.cmake llama_cpp/ohos_arm64.cmake
+```
+
+修改 `ohos_arm64.cmake`：
+```cmake
+set(CMAKE_SYSTEM_PROCESSOR aarch64)
+set(TARGET_TRIPLE aarch64-linux-ohos)
+```
+
+修改 `build_arm64.sh`：
+```bash
+TARGET="aarch64-linux-ohos"
+BUILD_DIR="build_arm64"
+TOOLCHAIN_FILE="ohos_arm64.cmake"
+```
+
+### 2. 编译 ARM64 版本
+
+```bash
+cd llama_cpp
+./build_arm64.sh
+```
+
+### 3. 处理 .so 库
+
+```bash
+# 创建 ARM64 库目录
+mkdir -p product/phone/libs/arm64-v8a
+
+# 复制并 patchelf（同 RISC-V 流程，目录改为 arm64-v8a）
+cd llama_cpp/build_arm64/bin
+cp libllama.so.0.0.* ../../../product/phone/src/main/libs/arm64-v8a/libllama.so
+# ... 其余同 RISC-V 流程
+```
+
+### 4. 修改 build_napi.sh
+
+修改 `TARGET` 和输出目录：
+```bash
+TARGET="aarch64-linux-ohos"
+OUT_DIR="$SCRIPT_DIR/product/phone/libs/arm64-v8a"
+LLAMA_LIB="$SCRIPT_DIR/product/phone/src/main/libs/arm64-v8a"
+```
+
+### 5. 编译并安装
+
+```bash
+./build_napi.sh
+# patchelf 修复依赖（同上）
+cp product/phone/src/main/libs/arm64-v8a/*.so product/phone/libs/arm64-v8a/
+rm -rf product/phone/build
+./build_settings.sh
+hdc install product/phone/build/default/outputs/default/phone-default-signed.hap
+```
+
+---
+
 ## 测试环境
-- **设备**: 进迭时空 RISC-V 平板 (Spacemit X60, 8核, 16GB)
-- **系统**: OpenHarmony 5.0
+
+| 系统 | 设备 | 状态 |
+|------|------|------|
+| OpenHarmony 5.0 | Spacemit X60 (RISC-V) | ✅ 已验证 |
+| OpenHarmony 6.0 | P7885 (ARM64) | 🔜 待验证 |
 
 ## License
 Apache License 2.0
