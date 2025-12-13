@@ -38,8 +38,9 @@ cd ai-agent-on-openharmony5.0-riscv
 
 ### 2. 配置SDK路径
 ```bash
-# 创建local.properties，指向你的OpenHarmony SDK
-echo "sdk.dir=/path/to/ohos-sdk/linux" > local.properties
+# 创建local.properties，指向OpenHarmony SDK
+# SDK路径固定为：OpenHarmony工程路径/prebuilts/ohos-sdk/linux
+echo "sdk.dir=/你的OpenHarmony工程路径/prebuilts/ohos-sdk/linux" > local.properties
 ```
 
 ### 3. 编译Settings应用
