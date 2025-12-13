@@ -61,10 +61,23 @@ hdc file send qwen2.5-0.5b-q4.gguf /data/app/el2/100/base/com.ohos.settings/file
 
 如果需要修改 llama.cpp 或 NAPI 封装，按以下步骤从源码编译。
 
-### 1. 编译 llama.cpp (RISC-V64)
+### 1. 下载 llama.cpp 源码
 
 ```bash
-# llama.cpp 源码已包含在 llama_cpp/ 目录
+# 克隆 llama.cpp 到 llama_cpp 目录
+git clone --depth 1 https://github.com/ggerganov/llama.cpp.git llama_cpp_src
+
+# 复制需要的文件到 llama_cpp/
+mkdir -p llama_cpp
+cp -r llama_cpp_src/{src,include,ggml,common,cmake,vendor,tools,CMakeLists.txt,LICENSE} llama_cpp/
+
+# 清理临时目录
+rm -rf llama_cpp_src
+```
+
+### 2. 编译 llama.cpp (RISC-V64)
+
+```bash
 cd llama_cpp
 ./build_riscv64.sh
 ```
@@ -75,7 +88,7 @@ cd llama_cpp
 - `libggml-base.so.0`
 - `libggml-cpu.so.0`
 
-### 2. 处理 .so 库（去除版本号）
+### 3. 处理 .so 库（去除版本号）
 
 ```bash
 cd llama_cpp/build_riscv64/bin
@@ -108,7 +121,7 @@ patchelf --set-rpath '$ORIGIN' libggml-base.so
 patchelf --set-rpath '$ORIGIN' libggml-cpu.so
 ```
 
-### 3. 编译 NAPI wrapper
+### 4. 编译 NAPI wrapper
 
 ```bash
 cd /path/to/settings
@@ -121,21 +134,21 @@ patchelf --replace-needed libggml-base.so.0 libggml-base.so product/phone/libs/r
 patchelf --replace-needed libggml-cpu.so.0 libggml-cpu.so product/phone/libs/riscv64/libllama_napi.so
 ```
 
-### 4. 复制库到打包目录
+### 5. 复制库到打包目录
 
 ```bash
 # 把处理好的 .so 复制到 HAP 打包目录
 cp product/phone/src/main/libs/riscv64/*.so product/phone/libs/riscv64/
 ```
 
-### 5. 编译 HAP
+### 6. 编译 HAP
 
 ```bash
 rm -rf product/phone/build   # 清缓存，否则不会重新打包 .so
 ./build_settings.sh
 ```
 
-### 6. 安装并测试
+### 7. 安装并测试
 
 ```bash
 hdc install product/phone/build/default/outputs/default/phone-default-signed.hap
