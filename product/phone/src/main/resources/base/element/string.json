@@ -1,6 +1,14 @@
 {
   "string": [
     {
+      "name": "ai_assistant",
+      "value": "AI 助手"
+    },
+    {
+      "name": "ai_assistant_desc",
+      "value": "本地AI对话"
+    },
+    {
       "name": "entry_MainAbility",
       "value": "设置"
     },

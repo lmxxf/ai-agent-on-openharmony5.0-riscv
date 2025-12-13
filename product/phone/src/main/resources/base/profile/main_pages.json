@@ -1,6 +1,7 @@
 {
   "src": [
     "pages/settingList",
+    "pages/aiAssistant",
     "pages/searchPage",
     "pages/dateAndTime",
     "pages/application",

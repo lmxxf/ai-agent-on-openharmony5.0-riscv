@@ -352,6 +352,17 @@ struct EntryComponent {
         }
         .settingListItemFancy()
 
+        // AI Assistant - 放在最显眼的位置
+        ListItem() {
+          SettingItemComponent({
+            targetPage: "pages/aiAssistant",
+            settingTitle: $r("app.string.ai_assistant"),
+            settingEndText: $endTextEmpty,
+            settingIcon: "/res/image/ic_ai.svg",
+          })
+        }
+        .settingListItemFancy()
+
         ListItem() {
           List() {
             ListItem(){

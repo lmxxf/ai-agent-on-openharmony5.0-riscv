@@ -4,3 +4,20 @@
 /.idea
 **/build
 /.hvigor
+
+# AI模型文件（太大）
+models/*.gguf
+models/*.bin
+
+# llama.cpp编译产物
+llama_cpp/build_riscv64/
+llama_cpp/build_arm64/
+
+# llama.cpp源码（从官方仓库clone）
+llama_cpp/cmake/
+llama_cpp/common/
+llama_cpp/ggml/
+llama_cpp/include/
+llama_cpp/src/
+llama_cpp/tools/
+llama_cpp/vendor/
