@@ -2,6 +2,7 @@
 
 -   [简介](#section11660541593)
     -   [架构图](#section48896451454)
+    -   [AI助手功能](#ai-assistant)
 
 -   [目录](#section161941989596)
 -   [相关仓](#section1371113476307)
@@ -9,6 +10,30 @@
 ## 简介<a name="section11660541593"></a>
 
 设置应用是 OpenHarmony 系统中预置的系统应用，为用户提供设置系统属性的交互界面，例如设置系统时间，屏幕亮度等系统属性。
+
+### AI助手功能<a name="ai-assistant"></a>
+
+本分支新增了本地AI助手功能，基于 llama.cpp 和 Qwen2.5-0.5B 模型实现设备端推理。
+
+**特性：**
+- 完全本地运行，无需联网，保护用户隐私
+- 支持多轮对话（保留最近3轮历史）
+- 异步推理，不阻塞UI
+
+**技术实现：**
+- `llama.cpp` 交叉编译为 RISC-V64
+- NAPI 封装，提供 `loadModel()` / `generate()` / `stopGeneration()` 接口
+- `generate()` 使用 `napi_create_async_work` 实现异步，返回 Promise
+
+**测试设备：**
+- 进迭时空 RISC-V 平板 (Spacemit X60, 8核, 16GB)
+
+**使用方法：**
+1. 将模型文件 `qwen2.5-0.5b-q4.gguf` 复制到设备的 `/data/app/el2/100/base/com.ohos.settings/files/`
+2. 打开设置应用，点击"AI助手"入口
+3. 等待模型加载完成后即可对话
+
+详细开发记录见 [开发历史.md](开发历史.md)
 
 ### 架构图<a name="section48896451454"></a>
 

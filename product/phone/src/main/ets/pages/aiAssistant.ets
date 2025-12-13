@@ -7,12 +7,17 @@ import Router from '@system.router';
 import ConfigData from '../../../../../../common/utils/src/main/ets/default/baseUtil/ConfigData';
 import LogUtil from '../../../../../../common/utils/src/main/ets/default/baseUtil/LogUtil';
 import HeadComponent from '../../../../../../common/component/src/main/ets/default/headComponent';
+import llama from 'libllama_napi.so';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
 }
+
+// 模型路径配置
+const MODEL_PATH = '/data/storage/el2/base/files/qwen2.5-0.5b-q4.gguf';
+const N_THREADS = 8;
 
 @Entry
 @Component
@@ -21,12 +26,39 @@ struct AiAssistant {
   @State inputText: string = '';
   @State isLoading: boolean = false;
   @State modelStatus: string = '模型未加载';
+  @State modelLoaded: boolean = false;
   private scroller: Scroller = new Scroller();
 
   aboutToAppear() {
     LogUtil.info('AiAssistant aboutToAppear');
-    // TODO: 初始化MindSpore Lite模型
-    this.modelStatus = '等待加载模型...';
+    this.loadModel();
+  }
+
+  aboutToDisappear() {
+    LogUtil.info('AiAssistant aboutToDisappear');
+    // 不在这里卸载模型，保持加载状态以便下次快速使用
+  }
+
+  loadModel() {
+    this.modelStatus = '正在加载模型...';
+
+    // 使用 TaskPool 在后台线程加载模型
+    try {
+      const success: boolean = llama.loadModel(MODEL_PATH, N_THREADS);
+      if (success) {
+        this.modelStatus = 'Qwen2.5-0.5B 已加载';
+        this.modelLoaded = true;
+        LogUtil.info('Model loaded successfully');
+      } else {
+        this.modelStatus = '模型加载失败';
+        this.modelLoaded = false;
+        LogUtil.error('Failed to load model');
+      }
+    } catch (error) {
+      this.modelStatus = '模型加载出错';
+      this.modelLoaded = false;
+      LogUtil.error('Error loading model: ' + JSON.stringify(error));
+    }
   }
 
   build() {
@@ -34,16 +66,27 @@ struct AiAssistant {
       // 顶部导航栏
       HeadComponent({ headName: $r('app.string.ai_assistant'), isActive: true })
 
-      // 模型状态
+      // 模型状态栏
       Row() {
         Circle()
           .width(8)
           .height(8)
-          .fill(this.modelStatus.includes('已加载') ? '#52c41a' : '#faad14')
+          .fill(this.modelLoaded ? '#52c41a' : '#faad14')
         Text(this.modelStatus)
           .fontSize(12)
           .fontColor('#666666')
           .margin({ left: 8 })
+
+        Blank()
+
+        if (!this.modelLoaded) {
+          Button('重新加载')
+            .fontSize(12)
+            .height(28)
+            .onClick(() => {
+              this.loadModel();
+            })
+        }
       }
       .width(ConfigData.WH_100_100)
       .padding({ left: 16, right: 16, top: 8, bottom: 8 })
@@ -63,7 +106,7 @@ struct AiAssistant {
                 .fontSize(24)
                 .fontWeight(FontWeight.Bold)
                 .margin({ top: 16 })
-              Text('基于 Qwen3-1.7B 本地模型')
+              Text('基于 Qwen2.5-0.5B 本地模型')
                 .fontSize(14)
                 .fontColor('#999999')
                 .margin({ top: 8 })
@@ -123,9 +166,9 @@ struct AiAssistant {
         .width(44)
         .height(44)
         .borderRadius(22)
-        .backgroundColor(this.inputText.length > 0 ? '#007AFF' : '#cccccc')
+        .backgroundColor(this.inputText.length > 0 && this.modelLoaded ? '#007AFF' : '#cccccc')
         .margin({ left: 8 })
-        .enabled(this.inputText.length > 0 && !this.isLoading)
+        .enabled(this.inputText.length > 0 && !this.isLoading && this.modelLoaded)
         .onClick(() => {
           this.sendMessage();
         })
@@ -174,7 +217,7 @@ struct AiAssistant {
   }
 
   sendMessage() {
-    if (this.inputText.trim().length === 0 || this.isLoading) {
+    if (this.inputText.trim().length === 0 || this.isLoading || !this.modelLoaded) {
       return;
     }
 
@@ -184,6 +227,7 @@ struct AiAssistant {
       timestamp: Date.now()
     };
     this.messages.push(userMessage);
+    const prompt = this.inputText.trim();
     this.inputText = '';
     this.isLoading = true;
 
@@ -192,12 +236,15 @@ struct AiAssistant {
       this.scroller.scrollEdge(Edge.Bottom);
     }, 100);
 
-    // TODO: 调用MindSpore Lite推理
-    // 目前用模拟响应
-    setTimeout(() => {
+    // 构造对话格式的 prompt
+    const formattedPrompt: string = this.formatPrompt(prompt);
+
+    // 异步调用 llama.cpp 推理
+    const generatePromise: Promise<string> = llama.generate(formattedPrompt, 256);
+    generatePromise.then((response: string) => {
       const assistantMessage: ChatMessage = {
         role: 'assistant',
-        content: this.generateMockResponse(userMessage.content),
+        content: response,
         timestamp: Date.now()
       };
       this.messages.push(assistantMessage);
@@ -206,19 +253,40 @@ struct AiAssistant {
       setTimeout(() => {
         this.scroller.scrollEdge(Edge.Bottom);
       }, 100);
-    }, 1000);
+    }).catch((error: Error) => {
+      const errorMessage: ChatMessage = {
+        role: 'assistant',
+        content: '推理出错: ' + JSON.stringify(error),
+        timestamp: Date.now()
+      };
+      this.messages.push(errorMessage);
+      LogUtil.error('Generate error: ' + JSON.stringify(error));
+      this.isLoading = false;
+
+      setTimeout(() => {
+        this.scroller.scrollEdge(Edge.Bottom);
+      }, 100);
+    });
   }
 
-  generateMockResponse(input: string): string {
-    // 模拟响应，后续替换为真实的模型推理
-    if (input.includes('你好') || input.includes('hello')) {
-      return '你好！我是运行在本地的AI助手，基于Qwen3-1.7B模型。有什么我可以帮助你的吗？';
-    } else if (input.includes('天气')) {
-      return '抱歉，我目前无法获取实时天气信息。作为本地模型，我没有联网能力。';
-    } else if (input.includes('是谁') || input.includes('介绍')) {
-      return '我是一个运行在OpenHarmony设备上的本地AI助手。我使用Qwen3-1.7B模型，通过MindSpore Lite在设备端进行推理，所有对话数据都在本地处理，保护您的隐私。';
-    } else {
-      return `收到您的消息："${input}"\n\n模型推理功能正在开发中，敬请期待！`;
+  // 格式化 prompt 为 Qwen 对话格式
+  formatPrompt(userInput: string): string {
+    // Qwen2.5 chat template
+    let prompt = '<|im_start|>system\n你是一个运行在OpenHarmony设备上的本地AI助手。请简洁回答用户问题。<|im_end|>\n';
+
+    // 添加历史对话（最多保留最近 3 轮）
+    const recentMessages = this.messages.slice(-6);
+    for (const msg of recentMessages) {
+      if (msg.role === 'user') {
+        prompt += `<|im_start|>user\n${msg.content}<|im_end|>\n`;
+      } else {
+        prompt += `<|im_start|>assistant\n${msg.content}<|im_end|>\n`;
+      }
     }
+
+    // 添加当前用户输入
+    prompt += `<|im_start|>user\n${userInput}<|im_end|>\n<|im_start|>assistant\n`;
+
+    return prompt;
   }
 }
