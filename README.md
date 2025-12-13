@@ -103,6 +103,18 @@ cd llama_cpp
 
 ### 3. 处理 .so 库（去除版本号）
 
+**为什么要这步？**
+
+llama.cpp 编译出的 .so 带版本号（如 `libllama.so.0.0.929`），但 OpenHarmony 的 hvigorw 只认不带版本号的 `libllama.so`。需要用 patchelf 修改：
+
+| 修改项 | 说明 | 举例 |
+|--------|------|------|
+| SONAME | .so 内部记录的"我叫什么" | `libllama.so.0` → `libllama.so` |
+| NEEDED | .so 内部记录的"我依赖谁" | 依赖 `libggml.so.0` → 依赖 `libggml.so` |
+| RUNPATH | .so 内部记录的"去哪找依赖" | 编译机路径 → `$ORIGIN`（同目录） |
+
+如果不改，运行时会找不到依赖库而崩溃。
+
 ```bash
 cd llama_cpp/build_riscv64/bin
 
@@ -140,7 +152,7 @@ patchelf --set-rpath '$ORIGIN' libggml-cpu.so
 cd /path/to/settings
 ./build_napi.sh
 
-# 修复 NAPI .so 的依赖
+# 修复 NAPI .so 的依赖（同样的道理：编译时链接的是 .so.0，要改成 .so）
 patchelf --replace-needed libllama.so.0 libllama.so product/phone/libs/riscv64/libllama_napi.so
 patchelf --replace-needed libggml.so.0 libggml.so product/phone/libs/riscv64/libllama_napi.so
 patchelf --replace-needed libggml-base.so.0 libggml-base.so product/phone/libs/riscv64/libllama_napi.so
