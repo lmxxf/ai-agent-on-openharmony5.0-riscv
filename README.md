@@ -115,6 +115,26 @@ llama.cpp 编译出的 .so 带版本号（如 `libllama.so.0.0.929`），但 Ope
 
 如果不改，运行时会找不到依赖库而崩溃。
 
+**`$ORIGIN` 是什么？**
+
+`$ORIGIN` 是 Linux 动态链接器的特殊变量，表示 ".so 文件自己所在的目录"。
+
+举例（假设 OpenHarmony 工程根目录为 `~/muse-paper/source/`）：
+
+编译时 RUNPATH 是编译机路径：
+```
+/home/lmxxf/muse-paper/source/applications/standard/settings/product/phone/src/main/libs/riscv64
+```
+
+但 .so 打包进 HAP 后，实际运行路径变成：
+```
+/data/app/el2/100/base/com.ohos.settings/libs/riscv64/libllama.so
+```
+
+如果 RUNPATH 还是编译机路径，动态链接器去 `/home/lmxxf/...` 找依赖，设备上根本没这个路径，崩溃。
+
+设置 `$ORIGIN` 后，动态链接器去 "和我同目录" 找，即 `/data/app/.../libs/riscv64/`，能找到。
+
 ```bash
 cd llama_cpp/build_riscv64/bin
 
