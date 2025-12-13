@@ -105,7 +105,7 @@ cd llama_cpp
 
 **为什么要这步？**
 
-llama.cpp 编译出的 .so 带版本号（如 `libllama.so.0.0.929`），但 OpenHarmony 的 hvigorw 只认不带版本号的 `libllama.so`。需要用 patchelf 修改：
+llama.cpp 编译出的 .so 带版本号（如 `libllama.so.0.0.929`），但因为有遥遥领先的 hvigorw，它只认不带版本号的 `libllama.so`，不会自动处理版本号、RUNPATH 等问题。需要手动用 patchelf 修改：
 
 | 修改项 | 说明 | 举例 |
 |--------|------|------|
