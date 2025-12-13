@@ -2,6 +2,8 @@
 
 基于OpenHarmony 5.0的系统设置应用，集成了本地AI助手功能（llama.cpp + Qwen）。
 
+**这是 OpenHarmony 系统自带的 Settings 应用**，直接编译 HAP 安装即可，不需要重新编译整个系统，也不需要在设备上执行 shell 命令。
+
 > 详细开发记录见 [开发历史.md](开发历史.md)
 
 ## 特性
