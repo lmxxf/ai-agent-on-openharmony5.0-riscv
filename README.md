@@ -40,6 +40,7 @@ cd ai-agent-on-openharmony5.0-riscv
 ```bash
 # 创建local.properties，指向OpenHarmony SDK
 # SDK路径固定为：OpenHarmony工程路径/prebuilts/ohos-sdk/linux
+# 例如 ~/muse-paper/source/prebuilts/ohos-sdk/linux
 echo "sdk.dir=/你的OpenHarmony工程路径/prebuilts/ohos-sdk/linux" > local.properties
 ```
 
