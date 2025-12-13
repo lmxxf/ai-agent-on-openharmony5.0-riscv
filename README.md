@@ -171,7 +171,7 @@ patchelf --set-rpath '$ORIGIN' libggml-cpu.so
 ### 4. 编译 NAPI wrapper
 
 ```bash
-cd /path/to/settings
+cd applications/standard/settings
 ./build_napi.sh
 
 # 修复 NAPI .so 的依赖（同样的道理：编译时链接的是 .so.0，要改成 .so）
