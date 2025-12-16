@@ -235,9 +235,9 @@ chmod +x llama-run
 | 紫光展锐 P7885 (4xA76+4xA55) | ARM64 | Qwen2.5-0.5B | Q4_K_M | ~5-10 token/s (预估) |
 
 **说明：**
-- Spacemit X60 没有 RVV（RISC-V Vector）向量扩展，只能标量运算
+- Spacemit K1 有 2 TOPS NPU（CPU AI融合指令，16条自定义RISC-V指令），但 llama.cpp 不支持，当前只跑标量运算。理论上可通过 Spacemit SDK 接入，但收益有限（2 TOPS 对 LLM 太弱）
 - P7885 有 NEON 向量指令，llama.cpp 原生支持，预估快 5 倍左右
-- P7885 有 8 TOPS NPU，如能接入可进一步加速（需展锐 SDK）
+- P7885 有 8 TOPS NPU，如能接入可进一步加速。但展锐 SDK 不公开，需签 NDA 或成为合作伙伴才能获取
 
 ## 目录结构
 ```
