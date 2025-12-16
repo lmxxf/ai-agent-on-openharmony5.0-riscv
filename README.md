@@ -235,9 +235,24 @@ chmod +x llama-run
 | 紫光展锐 P7885 (4xA76+4xA55) | ARM64 | Qwen2.5-0.5B | Q4_K_M | ~5-10 token/s (预估) |
 
 **说明：**
-- Spacemit K1 有 2 TOPS NPU（CPU AI融合指令，16条自定义RISC-V指令），但 llama.cpp 不支持，当前只跑标量运算。理论上可通过 Spacemit SDK 接入，但收益有限（2 TOPS 对 LLM 太弱）
-- P7885 有 NEON 向量指令，llama.cpp 原生支持，预估快 5 倍左右
+- Spacemit K1 有 2 TOPS NPU（CPU AI融合指令，16条自定义RISC-V指令），但 llama.cpp 不支持，当前只跑标量运算。理论上可通过 [Spacemit AI SDK](https://archive.spacemit.com/spacemit-ai/spacemit-ai-sdk/) 接入，但收益有限（2 TOPS 对 LLM 太弱）
+- P7885 有 NEON 向量指令（ARM CPU自带的SIMD），llama.cpp 原生支持，预估快 5 倍左右
 - P7885 有 8 TOPS NPU，如能接入可进一步加速。但展锐 SDK 不公开，需签 NDA 或成为合作伙伴才能获取
+
+**为什么不用 NPU？**
+
+NPU 生态碎片化严重，每家芯片厂商都有自己的私有 SDK：
+
+| 厂商 | NPU | SDK | 开放性 |
+|------|-----|-----|--------|
+| 展锐 | 8 TOPS | 展锐 SDK | NDA |
+| Spacemit | 2 TOPS | Spacemit AI SDK | 公开 |
+| 高通 | Hexagon | Qualcomm AI Engine | 部分公开 |
+| 联发科 | APU | NeuroPilot SDK | NDA |
+| 华为 | NPU | HiAI | 公开 |
+| Rockchip | RKNN | RKNN-Toolkit | 公开 |
+
+不像 CPU 有 x86/ARM 两个标准、GPU 有 CUDA/OpenCL，NPU 没有统一标准。llama.cpp 这类跨平台方案只能用 CPU（NEON/AVX 是公开标准），想用 NPU 就得针对每个平台单独适配，工作量巨大
 
 ## 目录结构
 ```
